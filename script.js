@@ -100,24 +100,26 @@ fileInput.addEventListener("change", e => {
 // ========== Масштабування картинки ==========
 function fitToScreen(img) {
   const container = document.getElementById("canvasContainer");
-  const maxW = container.clientWidth;
-  const maxH = container.clientHeight;
+  const maxW = container.clientWidth - 40; // віднімаємо padding
+  const maxH = container.clientHeight - 40;
 
-  // Робимо картинку на весь доступний простір
-  const scale = Math.max(maxW / img.width, maxH / img.height);
+  // дозволяємо картинці бути більшою за екран
+  const scale = Math.min(maxW / img.width, maxH / img.height, 2); // максимальний початковий масштаб 2x
   canvas.width = img.width * scale;
   canvas.height = img.height * scale;
   imgWidth = canvas.width;
   imgHeight = canvas.height;
 
-  // Центруємо якщо картинка менша за контейнер
-  imgOffsetX = Math.max(0, (maxW - imgWidth) / 2);
-  imgOffsetY = Math.max(0, (maxH - imgHeight) / 2);
+  // центруємо без жорстких обмежень
+  canvas.style.marginLeft = "0";
+  canvas.style.marginTop = "0";
 
-  canvas.style.marginLeft = imgOffsetX + "px";
-  canvas.style.marginTop = imgOffsetY + "px";
+  // оновлюємо offset для позиціонування лінійки
+  const containerRect = container.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  imgOffsetX = canvasRect.left - containerRect.left;
+  imgOffsetY = canvasRect.top - containerRect.top;
 }
-
 function drawImage() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -157,7 +159,9 @@ function moveRulerTo(left) {
 
 function updateBlurMask() {
   const rulerLeft = parseInt(ruler.style.left) || 0;
-  document.documentElement.style.setProperty('--ruler-left', rulerLeft + 'px');
+  const containerRect = document.getElementById("canvasContainer").getBoundingClientRect();
+  const relativeLeft = rulerLeft - containerRect.left;
+  document.documentElement.style.setProperty('--ruler-left', relativeLeft + 'px');
   document.documentElement.style.setProperty('--ruler-width', step + 'px');
 }
 
