@@ -14,10 +14,10 @@ body {
 }
 
 #controls {
-  padding: 10px;
-  background: #f0f0f0;
+  padding: 15px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   display: flex;
-  gap: 10px;
+  gap: 20px;
   align-items: center;
   flex-wrap: wrap;
   position: fixed;
@@ -25,10 +25,103 @@ body {
   left: 0;
   right: 0;
   z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transform-origin: top left;
-  transform: scale(1);
-  zoom: 1;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #dee2e6;
+}
+
+.controls-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.navigation {
+  background: rgba(255,255,255,0.8);
+  padding: 8px 15px;
+  border-radius: 25px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.nav-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.nav-btn.prev {
+  background: linear-gradient(135deg, #ffcdd2, #f8bbd9);
+  color: #c62828;
+}
+
+.nav-btn.next {
+  background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+  color: #2e7d32;
+}
+
+.nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.nav-btn:active {
+  transform: translateY(0);
+}
+
+.step-control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.step-control label {
+  font-size: 12px;
+  color: #666;
+}
+
+#stepInput {
+  width: 80px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button:not(.nav-btn) {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fff, #f1f3f4);
+  border: 1px solid #dadce0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:not(.nav-btn):hover {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#rowInfo {
+  font-weight: bold;
+  color: #495057;
+  margin: 0 10px;
+}
+
+select {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
 }
 
 #canvasContainer {

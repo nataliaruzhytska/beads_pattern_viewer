@@ -19,8 +19,8 @@ let isCalibrating = false;
 document.getElementById("startCalibration").onclick = () => {
   calibrationStart = parseInt(ruler.style.left) || 0;
   isCalibrating = true;
-  document.getElementById("startCalibration").disabled = true;
-  document.getElementById("endCalibration").disabled = false;
+  document.getElementById("startCalibration").style.display = "none";
+  document.getElementById("endCalibration").style.display = "inline-block";
   alert("Калібровка розпочата. Перемістіть лінійку в кінцеву позицію і натисніть 'Кінець калібровки'");
 };
 
@@ -43,8 +43,9 @@ document.getElementById("endCalibration").onclick = () => {
   // Скидання калібровки
   isCalibrating = false;
   calibrationStart = null;
-  document.getElementById("startCalibration").disabled = false;
-  document.getElementById("endCalibration").disabled = true;
+  document.getElementById("startCalibration").style.display = "inline-block";
+  document.getElementById("endCalibration").style.display = "none";
+
       updateRuler();
   alert(`Калібровка завершена! Новий крок: ${newStep.toFixed(1)} px`);
     };

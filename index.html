@@ -8,19 +8,33 @@
 </head>
 <body>
   <div id="controls">
+    <div class="controls-group">
     <input type="file" id="fileInput" accept="image/*,.pdf">
-    <label>Крок (px): <input type="number" id="stepInput" value="20" min="1" step="0.1"></label>
-    <button id="startCalibration">📏 Початок калібровки</button>
-    <button id="endCalibration" disabled>📐 Кінець калібровки</button>
-    <button id="prevRow">◀ Попередній ряд</button>
-    <button id="nextRow">Наступний ряд ▶</button>
-    <button id="saveProject">💾 Зберегти новий</button>
-    <button id="updateProject" disabled>🔄 Оновити поточний</button>
-    <select id="projectList">
-      <option value="">-- Обрати проєкт --</option>
-    </select>
-    <button id="loadProject">📂 Завантажити</button>
-    <span id="rowInfo">Рядок: 1</span>
+      <div class="step-control">
+        <label>Крок (px):</label>
+        <input type="number" id="stepInput" value="20" min="1" step="0.1">
+  </div>
+  </div>
+
+    <div class="controls-group navigation">
+      <button id="prevRow" class="nav-btn prev">◀</button>
+      <span id="rowInfo">Рядок: 1</span>
+      <button id="nextRow" class="nav-btn next">▶</button>
+    </div>
+
+    <div class="controls-group">
+      <button id="saveProject">💾 Зберегти новий</button>
+      <button id="updateProject" disabled>🔄 Оновити поточний</button>
+      <select id="projectList">
+        <option value="">-- Обрати проєкт --</option>
+      </select>
+      <button id="loadProject">📂 Завантажити</button>
+    </div>
+
+    <div class="controls-group calibration">
+      <button id="startCalibration">📏 Початок калібровки</button>
+      <button id="endCalibration" style="display: none;">📐 Кінець калібровки</button>
+    </div>
   </div>
 
   <div id="canvasContainer">
