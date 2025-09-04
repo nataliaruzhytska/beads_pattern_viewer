@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Bead Pattern Ruler</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="controls">
+    <input type="file" id="fileInput" accept="image/*,.pdf">
+    <label>Крок (px): <input type="number" id="stepInput" value="20" min="1"></label>
+    <button id="prevRow">◀ Попередній ряд</button>
+    <button id="nextRow">Наступний ряд ▶</button>
+    <button id="saveProject">💾 Зберегти</button>
+    <select id="projectList">
+      <option value="">-- Обрати проєкт --</option>
+    </select>
+    <button id="loadProject">📂 Завантажити</button>
+    <span id="rowInfo">Рядок: 1</span>
+  </div>
+
+  <div id="canvasContainer">
+    <canvas id="patternCanvas"></canvas>
+    <div id="highlight"></div>
+    <div id="ruler"></div>
+  </div>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
+
