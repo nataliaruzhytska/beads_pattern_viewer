@@ -2,16 +2,20 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Bead Pattern Ruler</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="controls">
     <input type="file" id="fileInput" accept="image/*,.pdf">
-    <label>Крок (px): <input type="number" id="stepInput" value="20" min="1"></label>
+    <label>Крок (px): <input type="number" id="stepInput" value="20" min="1" step="0.1"></label>
+    <button id="startCalibration">📏 Початок калібровки</button>
+    <button id="endCalibration" disabled>📐 Кінець калібровки</button>
     <button id="prevRow">◀ Попередній ряд</button>
     <button id="nextRow">Наступний ряд ▶</button>
-    <button id="saveProject">💾 Зберегти</button>
+    <button id="saveProject">💾 Зберегти новий</button>
+    <button id="updateProject" disabled>🔄 Оновити поточний</button>
     <select id="projectList">
       <option value="">-- Обрати проєкт --</option>
     </select>
@@ -21,13 +25,57 @@
 
   <div id="canvasContainer">
     <canvas id="patternCanvas"></canvas>
+    <div id="blurOverlay"></div>
     <div id="highlight"></div>
     <div id="ruler"></div>
   </div>
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    let currentProjectIndex = null;
+
+    document.getElementById("loadProject").onclick = () => {
+      const select = document.getElementById("projectList");
+      const idx = select.value;
+      if (idx==="") return alert("Оберіть проєкт для завантаження");
+      const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+      const data = projects[idx];
+      if (!data) return alert("Проєкт не знайдено");
+
+      currentProjectIndex = parseInt(idx);
+      document.getElementById("updateProject").disabled = false;
+
+      img.onload = () => {
+        fitToScreen(img);
+        drawImage();
+        step = data.step;
+        stepInput.value = step;
+        currentRow = data.currentRow;
+        updateRuler();
+      };
+      img.src = data.imgSrc;
+    };
+
+    document.getElementById("updateProject").onclick = () => {
+      if (currentProjectIndex === null) return;
+
+      const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+      if (!projects[currentProjectIndex]) return alert("Проєкт не знайдено");
+
+      projects[currentProjectIndex].imgSrc = img.src;
+      projects[currentProjectIndex].currentRow = currentRow;
+      projects[currentProjectIndex].step = step;
+
+      localStorage.setItem("beadProjects", JSON.stringify(projects));
+      alert("Проєкт оновлено ✅");
+    };
+
+    fileInput.addEventListener("change", e => {
+      currentProjectIndex = null;
+      document.getElementById("updateProject").disabled = true;
+    });
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
-
