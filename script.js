@@ -125,7 +125,19 @@ function drawImage() {
 // ========== Лінійка ==========
 function updateRuler() {
   const left = imgOffsetX + (currentRow - 1) * step;
-  moveRulerTo(left);
+  const minLeft = imgOffsetX;
+  const maxLeft = imgOffsetX + imgWidth;
+
+  // обмежуємо позицію межами картинки
+  const clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
+  ruler.style.left = clampedLeft + "px";
+  highlight.style.left = clampedLeft + "px";
+  highlight.style.width = step + "px";
+
+  // перерахуємо currentRow на основі реальної позиції
+  currentRow = Math.floor((clampedLeft - imgOffsetX) / step) + 1;
+  rowInfo.textContent = `Рядок: ${currentRow}`;
+
   updateBlurMask();
 }
 
@@ -137,7 +149,6 @@ function moveRulerTo(left) {
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  // Завжди обчислюємо рядок, навіть під час калібровки
   currentRow = Math.floor((left - imgOffsetX) / step) + 1;
   rowInfo.textContent = `Рядок: ${currentRow}`;
   updateBlurMask();
@@ -208,20 +219,21 @@ document.getElementById("canvasContainer").addEventListener("touchstart", e => {
   }
 });
 
-// кнопки навігації - тільки вони використовують snapToGrid
+// кнопки навігації
 document.getElementById("prevRow").onclick = () => {
   if (currentRow > 1) {
     currentRow--;
-    const snappedLeft = imgOffsetX + (currentRow - 1) * step;
-  moveRulerTo(snappedLeft);
-}
+    updateRuler();
+  }
 };
 
 document.getElementById("nextRow").onclick = () => {
-  currentRow++;
-  const snappedLeft = imgOffsetX + (currentRow - 1) * step;
-  moveRulerTo(snappedLeft);
-  };
+  const maxRow = Math.ceil(imgWidth / step);
+  if (currentRow < maxRow) {
+    currentRow++;
+    updateRuler();
+  }
+};
 
 function snapToGrid() {
   const left = parseInt(ruler.style.left) || 0;
