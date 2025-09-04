@@ -8,7 +8,7 @@ const rowInfo = document.getElementById("rowInfo");
 
 let img = new Image();
 let imgWidth = 0, imgHeight = 0;
-let currentRow = 1;
+let rulerPosition = 0; // позиція в пікселях замість currentRow
 let step = parseInt(stepInput.value);
 let imgOffsetX = 0, imgOffsetY = 0;
 let currentProjectIndex = null;
@@ -56,10 +56,9 @@ document.getElementById("endCalibration").onclick = () => {
   step = newStep;
   stepInput.value = newStep.toFixed(1);
 
-  // перерахуємо поточний рядок з новим кроком
+  // перерахуємо поточну позицію з новим кроком
   const currentLeft = parseInt(ruler.style.left) || imgOffsetX;
-  currentRow = Math.floor((currentLeft - imgOffsetX) / step) + 1;
-
+  rulerPosition = currentLeft - imgOffsetX;
   // Скидання калібровки
   isCalibrating = false;
   calibrationStart = null;
@@ -94,7 +93,7 @@ fileInput.addEventListener("change", e => {
   img.onload = () => {
     fitToScreen(img);
     drawImage();
-              currentRow = 1;
+              rulerPosition = 0;
     updateRuler();
   };
             img.src = pdfCanvas.toDataURL();
@@ -112,7 +111,7 @@ fileInput.addEventListener("change", e => {
     img.onload = () => {
       fitToScreen(img);
       drawImage();
-      currentRow = 1;
+      rulerPosition = 0;
       updateRuler();
     };
     img.src = ev.target.result;
@@ -143,6 +142,7 @@ function fitToScreen(img) {
   imgOffsetX = canvasRect.left - containerRect.left;
   imgOffsetY = canvasRect.top - containerRect.top;
 }
+
 function drawImage() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -150,12 +150,14 @@ function drawImage() {
 
 // ========== Лінійка ==========
 function updateRuler() {
-  const left = imgOffsetX + (currentRow - 1) * step;
+  const left = imgOffsetX + rulerPosition;
   ruler.style.left = left + "px";
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  rowInfo.textContent = `Рядок: ${currentRow}`;
+  // рахуємо рядок тільки для відображення
+  const displayRow = Math.floor(rulerPosition / step) + 1;
+  rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
 }
 
@@ -164,14 +166,15 @@ function moveRulerTo(left) {
   const maxLeft = imgOffsetX + imgWidth;
   left = Math.max(minLeft, Math.min(left, maxLeft));
 
+  // зберігаємо позицію відносно початку картинки
+  rulerPosition = left - imgOffsetX;
+
   ruler.style.left = left + "px";
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  // перерахуємо currentRow на основі реальної позиції
-  currentRow = Math.floor((left - imgOffsetX) / step) + 1;
-  rowInfo.textContent = `Рядок: ${currentRow}`;
-
+  const displayRow = Math.floor(rulerPosition / step) + 1;
+  rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
 }
 
@@ -233,53 +236,22 @@ document.addEventListener("touchend", () => {
 
 document.addEventListener("touchmove", e => { if(dragging) moveRulerTo(e.touches[0].clientX); });
 
-// клік по контейнеру для позиціонування лінійки
-/*
-document.getElementById("canvasContainer").addEventListener("click", e => {
-  if (!dragging) {
-    const clickX = e.clientX;
-    moveRulerTo(clickX);
-  }
-});
-*/
-
-// тач для мобільних
-/*
-document.getElementById("canvasContainer").addEventListener("touchstart", e => {
-  if (e.target === e.currentTarget || e.target === canvas) {
-    const touch = e.touches[0];
-    moveRulerTo(touch.clientX);
-    e.preventDefault();
-  }
-});
-*/
-
 // кнопки навігації
 document.getElementById("prevRow").onclick = () => {
-  if (currentRow > 1) {
-    currentRow--;
+  rulerPosition = Math.max(0, rulerPosition - step);
     updateRuler();
-  }
   };
 
 document.getElementById("nextRow").onclick = () => {
-  // розраховуємо максимальний рядок динамічно
-  const currentLeft = imgOffsetX + (currentRow - 1) * step;
-  const nextLeft = imgOffsetX + currentRow * step;
-
-  // перевіряємо чи наступна позиція не виходить за межі картинки
-  if (nextLeft <= imgOffsetX + imgWidth) {
-    currentRow++;
+  rulerPosition = Math.min(imgWidth, rulerPosition + step);
     updateRuler();
-  }
 };
 
 function snapToGrid() {
   const left = parseInt(ruler.style.left) || 0;
-  const snappedRow = Math.round((left - imgOffsetX) / step);
-  const snappedLeft = imgOffsetX + snappedRow * step;
-  currentRow = Math.max(1, snappedRow + 1);
-  moveRulerTo(snappedLeft);
+  const snappedPosition = Math.round((left - imgOffsetX) / step) * step;
+  rulerPosition = Math.max(0, snappedPosition);
+  moveRulerTo(imgOffsetX + rulerPosition);
 }
 
 // ========== Збереження/завантаження кількох проєктів ==========
@@ -299,7 +271,12 @@ document.getElementById("saveProject").onclick = () => {
   const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
   const name = prompt("Назва проєкту", `Проєкт ${projects.length+1}`);
   if (!name) return;
-  const data = { name, imgSrc: img.src, currentRow, step };
+  const data = {
+    name,
+    imgSrc: img.src,
+    rulerPosition: rulerPosition, // зберігаємо позицію в пікселях
+    step
+};
   projects.push(data);
   localStorage.setItem("beadProjects", JSON.stringify(projects));
 loadProjectList();
@@ -322,7 +299,7 @@ document.getElementById("loadProject").onclick = () => {
     drawImage();
     step = data.step;
     stepInput.value = step;
-    currentRow = data.currentRow;
+    rulerPosition = data.rulerPosition || 0; // завантажуємо позицію в пікселях
     updateRuler();
   };
   img.src = data.imgSrc;
@@ -335,7 +312,7 @@ document.getElementById("updateProject").onclick = () => {
   if (!projects[currentProjectIndex]) return alert("Проєкт не знайдено");
 
   projects[currentProjectIndex].imgSrc = img.src;
-  projects[currentProjectIndex].currentRow = currentRow;
+  projects[currentProjectIndex].rulerPosition = rulerPosition;
   projects[currentProjectIndex].step = step;
 
   localStorage.setItem("beadProjects", JSON.stringify(projects));
