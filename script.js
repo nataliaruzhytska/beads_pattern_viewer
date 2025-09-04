@@ -16,6 +16,21 @@ let imgOffsetX = 0, imgOffsetY = 0;
 let calibrationStart = null;
 let isCalibrating = false;
 
+// забороняємо подвійний клік
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+
+// забороняємо жести масштабування
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('gestureend', e => e.preventDefault());
+
+// забороняємо wheel zoom з Ctrl/Cmd
+document.addEventListener('wheel', e => {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
 document.getElementById("startCalibration").onclick = () => {
   calibrationStart = parseInt(ruler.style.left) || 0;
   isCalibrating = true;
@@ -40,15 +55,19 @@ document.getElementById("endCalibration").onclick = () => {
   step = newStep;
   stepInput.value = newStep.toFixed(1);
 
+  // перерахуємо поточний рядок з новим кроком
+  const currentLeft = parseInt(ruler.style.left) || imgOffsetX;
+  currentRow = Math.floor((currentLeft - imgOffsetX) / step) + 1;
+
   // Скидання калібровки
   isCalibrating = false;
   calibrationStart = null;
   document.getElementById("startCalibration").style.display = "inline-block";
   document.getElementById("endCalibration").style.display = "none";
 
-      updateRuler();
+    updateRuler();
   alert(`Калібровка завершена! Новий крок: ${newStep.toFixed(1)} px`);
-    };
+};
 
 // ========== Завантаження картинки або PDF ==========
 fileInput.addEventListener("change", e => {
@@ -128,19 +147,11 @@ function drawImage() {
 // ========== Лінійка ==========
 function updateRuler() {
   const left = imgOffsetX + (currentRow - 1) * step;
-  const minLeft = imgOffsetX;
-  const maxLeft = imgOffsetX + imgWidth;
-
-  // обмежуємо позицію межами картинки
-  const clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
-  ruler.style.left = clampedLeft + "px";
-  highlight.style.left = clampedLeft + "px";
+  ruler.style.left = left + "px";
+  highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  // перерахуємо currentRow на основі реальної позиції
-  currentRow = Math.floor((clampedLeft - imgOffsetX) / step) + 1;
   rowInfo.textContent = `Рядок: ${currentRow}`;
-
   updateBlurMask();
 }
 
@@ -148,12 +159,15 @@ function moveRulerTo(left) {
   const minLeft = imgOffsetX;
   const maxLeft = imgOffsetX + imgWidth;
   left = Math.max(minLeft, Math.min(left, maxLeft));
+
   ruler.style.left = left + "px";
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
+  // перерахуємо currentRow на основі реальної позиції
   currentRow = Math.floor((left - imgOffsetX) / step) + 1;
   rowInfo.textContent = `Рядок: ${currentRow}`;
+
   updateBlurMask();
 }
 
@@ -165,7 +179,10 @@ function updateBlurMask() {
   document.documentElement.style.setProperty('--ruler-width', step + 'px');
 }
 
-stepInput.onchange = () => { step = parseInt(stepInput.value); updateRuler(); };
+stepInput.onchange = () => {
+  step = parseFloat(stepInput.value);
+    updateRuler();
+};
 
 // перетягування лінійки
 let dragging = false;
@@ -207,15 +224,17 @@ document.addEventListener("touchend", () => {
 document.addEventListener("touchmove", e => { if(dragging) moveRulerTo(e.touches[0].clientX); });
 
 // клік по контейнеру для позиціонування лінійки
+/*
 document.getElementById("canvasContainer").addEventListener("click", e => {
   if (!dragging) {
     const clickX = e.clientX;
     moveRulerTo(clickX);
-    // не викликаємо snapToGrid() - залишаємо в точному місці кліку
   }
 });
+*/
 
 // тач для мобільних
+/*
 document.getElementById("canvasContainer").addEventListener("touchstart", e => {
   if (e.target === e.currentTarget || e.target === canvas) {
     const touch = e.touches[0];
@@ -223,6 +242,7 @@ document.getElementById("canvasContainer").addEventListener("touchstart", e => {
     e.preventDefault();
   }
 });
+*/
 
 // кнопки навігації
 document.getElementById("prevRow").onclick = () => {
@@ -230,11 +250,15 @@ document.getElementById("prevRow").onclick = () => {
     currentRow--;
     updateRuler();
   }
-};
+  };
 
 document.getElementById("nextRow").onclick = () => {
-  const maxRow = Math.ceil(imgWidth / step);
-  if (currentRow < maxRow) {
+  // розраховуємо максимальний рядок динамічно
+  const currentLeft = imgOffsetX + (currentRow - 1) * step;
+  const nextLeft = imgOffsetX + currentRow * step;
+
+  // перевіряємо чи наступна позиція не виходить за межі картинки
+  if (nextLeft <= imgOffsetX + imgWidth) {
     currentRow++;
     updateRuler();
   }

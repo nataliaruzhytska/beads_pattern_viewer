@@ -1,5 +1,9 @@
 html {
   font-size: 16px; /* фіксований розмір шрифту */
+  touch-action: manipulation; /* забороняє pinch-zoom */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -8,6 +12,20 @@ body {
   display: flex;
   flex-direction: column;
   font-family: sans-serif;
+  touch-action: manipulation; /* забороняє pinch-zoom */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* забороняємо подвійний клік для масштабування */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #controls {
@@ -146,7 +164,8 @@ select {
   display: flex;
   justify-content: center;
   align-items: center;
-  touch-action: pan-x pan-y pinch-zoom;
+  touch-action: manipulation; /* забороняє pinch-zoom в контейнері */
+  -webkit-user-select: none;
 }
 
 #blurOverlay {
@@ -186,7 +205,8 @@ select {
 
 #patternCanvas {
   display: block;
-  touch-action: manipulation;
+  touch-action: manipulation; /* забороняє pinch-zoom на canvas */
+  pointer-events: auto;
   /* дозволяємо масштабування картинки */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
@@ -210,3 +230,4 @@ select {
   pointer-events: none;
   z-index: 100; /* нижче панелі */
 }
+```
