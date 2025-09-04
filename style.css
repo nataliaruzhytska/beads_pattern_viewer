@@ -219,7 +219,29 @@ select {
   height: 100%;
   background: red;
   cursor: ew-resize;
-  z-index: 100; /* нижче панелі */
+  z-index: 15;
+}
+
+#ruler::before {
+  content: '';
+  position: absolute;
+  left: -15px; /* розширюємо зону захвату на 15px вліво */
+  right: -15px; /* і на 15px вправо */
+  top: 0;
+  bottom: 0;
+  /* невидима зона для touch */
+}
+
+/* альтернативно, можна додати окремий елемент */
+#rulerTouchArea {
+  position: absolute;
+  top: 0;
+  width: 32px; /* загальна ширина зони захвату */
+  height: 100%;
+  margin-left: -15px; /* центруємо відносно лінійки */
+  cursor: ew-resize;
+  z-index: 14;
+  /* для налагодження можна додати: background: rgba(255,0,0,0.1); */
 }
 
 #highlight {
@@ -230,4 +252,3 @@ select {
   pointer-events: none;
   z-index: 100; /* нижче панелі */
 }
-```

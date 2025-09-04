@@ -190,11 +190,23 @@ stepInput.onchange = () => {
 
 // перетягування лінійки
 let dragging = false;
-let freePositioning = false; // флаг для вільного позиціонування
-ruler.addEventListener("mousedown", e => {
+let freePositioning = false;
+
+const rulerElements = [ruler, document.getElementById("rulerTouchArea")];
+
+rulerElements.forEach(element => {
+  if (!element) return;
+  element.addEventListener("mousedown", e => {
   dragging = true;
-  freePositioning = true; // при перетягуванні дозволяємо вільне позиціонування
+  freePositioning = true;
+  e.preventDefault();
+});
+
+  element.addEventListener("touchstart", e => {
+    dragging = true;
+    freePositioning = true;
     e.preventDefault();
+});
 });
 
 document.addEventListener("mouseup", () => {
@@ -208,12 +220,6 @@ document.addEventListener("mouseup", () => {
 });
 
 document.addEventListener("mousemove", e => { if(dragging) moveRulerTo(e.clientX); });
-
-ruler.addEventListener("touchstart", e => {
-  dragging = true;
-  freePositioning = true;
-  e.preventDefault();
-});
 
 document.addEventListener("touchend", () => {
   if(dragging) {
