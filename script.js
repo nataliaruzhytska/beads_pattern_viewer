@@ -11,6 +11,7 @@ let imgWidth = 0, imgHeight = 0;
 let currentRow = 1;
 let step = parseInt(stepInput.value);
 let imgOffsetX = 0, imgOffsetY = 0;
+let currentProjectIndex = null;
 
 // Калібровка
 let calibrationStart = null;
@@ -71,6 +72,9 @@ document.getElementById("endCalibration").onclick = () => {
 
 // ========== Завантаження картинки або PDF ==========
 fileInput.addEventListener("change", e => {
+  currentProjectIndex = null;
+  document.getElementById("updateProject").disabled = true;
+
   const file = e.target.files[0];
   if (!file) return;
 
@@ -303,6 +307,10 @@ document.getElementById("loadProject").onclick = () => {
   const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
   const data = projects[idx];
   if (!data) return alert("Проєкт не знайдено");
+
+  currentProjectIndex = parseInt(idx);
+  document.getElementById("updateProject").disabled = false;
+
   img.onload = () => {
     fitToScreen(img);
     drawImage();
@@ -312,6 +320,21 @@ document.getElementById("loadProject").onclick = () => {
     updateRuler();
   };
   img.src = data.imgSrc;
+};
+
+document.getElementById("updateProject").onclick = () => {
+  if (currentProjectIndex === null) return;
+
+  const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+  if (!projects[currentProjectIndex]) return alert("Проєкт не знайдено");
+
+  projects[currentProjectIndex].imgSrc = img.src;
+  projects[currentProjectIndex].currentRow = currentRow;
+  projects[currentProjectIndex].step = step;
+
+  localStorage.setItem("beadProjects", JSON.stringify(projects));
+loadProjectList();
+  alert("Проєкт оновлено ✅");
 };
 
 // старт

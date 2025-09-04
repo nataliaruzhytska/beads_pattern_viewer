@@ -46,50 +46,6 @@
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script>
-    let currentProjectIndex = null;
-
-    document.getElementById("loadProject").onclick = () => {
-      const select = document.getElementById("projectList");
-      const idx = select.value;
-      if (idx==="") return alert("Оберіть проєкт для завантаження");
-      const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
-      const data = projects[idx];
-      if (!data) return alert("Проєкт не знайдено");
-
-      currentProjectIndex = parseInt(idx);
-      document.getElementById("updateProject").disabled = false;
-
-      img.onload = () => {
-        fitToScreen(img);
-        drawImage();
-        step = data.step;
-        stepInput.value = step;
-        currentRow = data.currentRow;
-        updateRuler();
-      };
-      img.src = data.imgSrc;
-    };
-
-    document.getElementById("updateProject").onclick = () => {
-      if (currentProjectIndex === null) return;
-
-      const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
-      if (!projects[currentProjectIndex]) return alert("Проєкт не знайдено");
-
-      projects[currentProjectIndex].imgSrc = img.src;
-      projects[currentProjectIndex].currentRow = currentRow;
-      projects[currentProjectIndex].step = step;
-
-      localStorage.setItem("beadProjects", JSON.stringify(projects));
-      alert("Проєкт оновлено ✅");
-    };
-
-    fileInput.addEventListener("change", e => {
-      currentProjectIndex = null;
-      document.getElementById("updateProject").disabled = true;
-    });
-  </script>
   <script src="script.js"></script>
 </body>
 </html>
