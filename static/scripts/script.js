@@ -8,35 +8,29 @@ const rowInfo = document.getElementById("rowInfo");
 
 let img = new Image();
 let imgWidth = 0, imgHeight = 0;
-let rulerPosition = 0; // позиція в пікселях замість currentRow
+let rulerPosition = 0;
 let step = parseInt(stepInput.value);
 let imgOffsetX = 0, imgOffsetY = 0;
 let currentProjectIndex = null;
 
-// Калібровка
 let calibrationStart = null;
 let isCalibrating = false;
 
-// Відстеження змін
 let hasUnsavedChanges = false;
 let lastSavedState = null;
 
-// забороняємо подвійний клік
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
-// забороняємо жести масштабування
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
 
-// забороняємо wheel zoom з Ctrl/Cmd
 document.addEventListener('wheel', e => {
   if (e.ctrlKey || e.metaKey) {
     e.preventDefault();
   }
 }, { passive: false });
 
-// функція для показу повідомлень
 function showToast(message, type = 'success') {
   const backgroundColor = {
     success: 'linear-gradient(to right, #00b09b, #96c93d)',
@@ -56,7 +50,6 @@ function showToast(message, type = 'success') {
   }).showToast();
 }
 
-// функція для відстеження змін
 function checkForChanges() {
   if (currentProjectIndex === null) return;
 
@@ -68,7 +61,6 @@ function checkForChanges() {
   hasUnsavedChanges = JSON.stringify(currentState) !== JSON.stringify(lastSavedState);
 }
 
-// функція з обробкою помилок для localStorage
 function safeSetItem(key, value) {
   try {
     localStorage.setItem(key, value);
@@ -91,26 +83,38 @@ document.getElementById("startCalibration").onclick = () => {
   showToast("Калібровка розпочата. Перемістіть лінійку в кінцеву позицію", "info");
 };
 
-document.getElementById("endCalibration").onclick = () => {
+document.getElementById("endCalibration").onclick = async () => {
   if (!isCalibrating || calibrationStart === null) return;
 
   const calibrationEnd = parseInt(ruler.style.left) || 0;
   const pixelDistance = Math.abs(calibrationEnd - calibrationStart);
 
-  const columns = prompt("Скільки стовпчиків між початковою і кінцевою позицією?");
-  if (!columns || isNaN(columns) || parseInt(columns) <= 0) {
-    showToast("Введіть коректну кількість стовпчиків", "error");
-    return;
-  }
+  const { value: columns } = await Swal.fire({
+    title: 'Калібровка',
+    text: 'Скільки стовпчиків між початковою і кінцевою позицією?',
+    input: 'number',
+    inputAttributes: {
+      min: 1,
+      step: 1
+    },
+    showCancelButton: true,
+    confirmButtonText: 'Підтвердити',
+    cancelButtonText: 'Скасувати',
+    inputValidator: (value) => {
+      if (!value || isNaN(value) || parseInt(value) <= 0) {
+        return 'Введіть коректну кількість стовпчиків!'
+      }
+    }
+  });
+
+  if (!columns) return;
 
   const newStep = pixelDistance / parseInt(columns);
   step = newStep;
   stepInput.value = newStep.toFixed(1);
 
-  // перерахуємо поточну позицію з новим кроком
   const currentLeft = parseInt(ruler.style.left) || imgOffsetX;
   rulerPosition = currentLeft - imgOffsetX;
-  // Скидання калібровки
   isCalibrating = false;
   calibrationStart = null;
   document.getElementById("startCalibration").style.display = "inline-block";
@@ -121,13 +125,25 @@ document.getElementById("endCalibration").onclick = () => {
   showToast(`Калібровка завершена! Новий крок: ${newStep.toFixed(1)} px`);
 };
 
-// ========== Завантаження картинки або PDF ==========
-fileInput.addEventListener("change", e => {
+fileInput.addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
 
   if (hasUnsavedChanges && currentProjectIndex !== null) {
-    if (confirm("У поточному проєкті є несохранені зміни. Зберегти їх?")) {
+    const result = await Swal.fire({
+      title: 'Незбережені зміни',
+      text: 'У поточному проєкті є незбереженні зміни. Зберегти їх?',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'Зберегти',
+      denyButtonText: 'Не зберігати',
+      cancelButtonText: 'Скасувати'
+    });
+
+    if (result.isDismissed) return;
+
+    if (result.isConfirmed) {
       try {
       const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
       if (projects[currentProjectIndex]) {
@@ -167,7 +183,7 @@ fileInput.addEventListener("change", e => {
               fitToScreen(img);
               drawImage();
               rulerPosition = 0;
-              step = 20; // скидаємо крок
+              step = 20;
               stepInput.value = step;
               updateRuler();
             };
@@ -180,14 +196,13 @@ fileInput.addEventListener("change", e => {
     return;
   }
 
-  // код для зображень
   const reader = new FileReader();
   reader.onload = ev => {
     img.onload = () => {
       fitToScreen(img);
       drawImage();
       rulerPosition = 0;
-      step = 20; // скидаємо крок
+      step = 20;
       stepInput.value = step;
       updateRuler();
     };
@@ -196,24 +211,20 @@ fileInput.addEventListener("change", e => {
   reader.readAsDataURL(file);
 });
 
-// ========== Масштабування картинки ==========
 function fitToScreen(img) {
   const container = document.getElementById("canvasContainer");
-  const maxW = container.clientWidth - 40; // віднімаємо padding
+  const maxW = container.clientWidth - 40;
   const maxH = container.clientHeight - 40;
 
-  // дозволяємо картинці бути більшою за екран
-  const scale = Math.min(maxW / img.width, maxH / img.height, 2); // максимальний початковий масштаб 2x
+  const scale = Math.min(maxW / img.width, maxH / img.height, 2);
   canvas.width = img.width * scale;
   canvas.height = img.height * scale;
   imgWidth = canvas.width;
   imgHeight = canvas.height;
 
-  // центруємо без жорстких обмежень
   canvas.style.marginLeft = "0";
   canvas.style.marginTop = "0";
 
-  // оновлюємо offset для позиціонування лінійки
   const containerRect = container.getBoundingClientRect();
   const canvasRect = canvas.getBoundingClientRect();
   imgOffsetX = canvasRect.left - containerRect.left;
@@ -225,14 +236,12 @@ function drawImage() {
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 }
 
-// ========== Лінійка ==========
 function updateRuler() {
   const left = imgOffsetX + rulerPosition;
   ruler.style.left = left + "px";
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  // рахуємо рядок тільки для відображення
   const displayRow = Math.floor(rulerPosition / step) + 1;
   rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
@@ -243,7 +252,6 @@ function moveRulerTo(left) {
   const maxLeft = imgOffsetX + imgWidth;
   left = Math.max(minLeft, Math.min(left, maxLeft));
 
-  // зберігаємо позицію відносно початку картинки
   rulerPosition = left - imgOffsetX;
 
   ruler.style.left = left + "px";
@@ -254,7 +262,7 @@ function moveRulerTo(left) {
   rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
 
-  checkForChanges(); // перевіряємо зміни
+  checkForChanges();
 }
 
 function updateBlurMask() {
@@ -271,7 +279,6 @@ stepInput.onchange = () => {
   checkForChanges();
 };
 
-// перетягування лінійки
 let dragging = false;
 let freePositioning = false;
 
@@ -315,8 +322,6 @@ document.addEventListener("touchend", () => {
 });
 
 document.addEventListener("touchmove", e => { if(dragging) moveRulerTo(e.touches[0].clientX); });
-
-// кнопки навігації
 document.getElementById("prevRow").onclick = () => {
   rulerPosition = Math.max(0, rulerPosition - step);
   updateRuler();
@@ -325,9 +330,9 @@ document.getElementById("prevRow").onclick = () => {
 
 document.getElementById("nextRow").onclick = () => {
   rulerPosition = Math.min(imgWidth, rulerPosition + step);
-  updateRuler();
+      updateRuler();
   checkForChanges();
-};
+      };
 
 function snapToGrid() {
   const left = parseInt(ruler.style.left) || 0;
@@ -336,9 +341,8 @@ function snapToGrid() {
   moveRulerTo(imgOffsetX + rulerPosition);
 }
 
-// ========== Збереження/завантаження кількох проєктів ==========
 function loadProjectList() {
-  const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+    const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
   const select = document.getElementById("projectList");
   select.innerHTML = `<option value="">-- Обрати проєкт --</option>`;
   projects.forEach((p,i)=>{
@@ -347,44 +351,58 @@ function loadProjectList() {
     opt.textContent=p.name||`Проєкт ${i+1}`;
     select.appendChild(opt);
   });
-}
+    }
 
-document.getElementById("saveProject").onclick = () => {
+document.getElementById("saveProject").onclick = async () => {
   if (!img.src) {
     showToast("Спочатку завантажте картинку", "warning");
     return;
   }
 
-  const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
-  const name = prompt("Назва проєкту", `Проєкт ${projects.length+1}`);
+    const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+
+  const { value: name } = await Swal.fire({
+    title: 'Зберегти проєкт',
+    text: 'Введіть назву проєкту:',
+    input: 'text',
+    inputValue: `Проєкт ${projects.length + 1}`,
+    showCancelButton: true,
+    confirmButtonText: 'Зберегти',
+    cancelButtonText: 'Скасувати',
+    inputValidator: (value) => {
+      if (!value || value.trim() === '') {
+        return 'Введіть назву проєкту!'
+      }
+    }
+  });
+
   if (!name) return;
 
   const data = {
-    name,
+    name: name.trim(),
     imgSrc: img.src,
-      rulerPosition: rulerPosition,
+    rulerPosition: rulerPosition,
     step
-    };
+};
   projects.push(data);
 
   if (safeSetItem("beadProjects", JSON.stringify(projects))) {
     currentProjectIndex = projects.length - 1;
-  loadProjectList();
-  document.getElementById("projectList").value = currentProjectIndex;
+loadProjectList();
+    document.getElementById("projectList").value = currentProjectIndex;
     document.getElementById("updateProject").disabled = false;
     document.getElementById("deleteProject").disabled = false;
 
-  lastSavedState = {
-    rulerPosition: rulerPosition,
-    step: step
-  };
-  hasUnsavedChanges = false;
+    lastSavedState = {
+      rulerPosition: rulerPosition,
+      step: step
+    };
+    hasUnsavedChanges = false;
 
     showToast("Проєкт збережено ✅");
   }
 };
 
-// автозавантаження при виборі проєкту
 document.getElementById("projectList").onchange = () => {
   const select = document.getElementById("projectList");
   const idx = select.value;
@@ -468,8 +486,7 @@ loadProjectList();
   }
 };
 
-// функція видалення проєкту
-document.getElementById("deleteProject").onclick = () => {
+document.getElementById("deleteProject").onclick = async () => {
   if (currentProjectIndex === null) {
     showToast("Немає проєкту для видалення", "warning");
     return;
@@ -479,7 +496,18 @@ document.getElementById("deleteProject").onclick = () => {
     const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
     const projectName = projects[currentProjectIndex]?.name || "Проєкт";
 
-    if (confirm(`Видалити проєкт "${projectName}"?`)) {
+    const result = await Swal.fire({
+      title: 'Видалити проєкт?',
+      text: `Видалити проєкт "${projectName}"? Цю дію неможливо скасувати.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Так, видалити!',
+      cancelButtonText: 'Скасувати'
+    });
+
+    if (result.isConfirmed) {
       projects.splice(currentProjectIndex, 1);
 
       if (safeSetItem("beadProjects", JSON.stringify(projects))) {
@@ -500,5 +528,4 @@ document.getElementById("deleteProject").onclick = () => {
   }
 };
 
-// старт
 loadProjectList();
