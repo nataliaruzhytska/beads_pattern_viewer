@@ -17,6 +17,10 @@ let currentProjectIndex = null;
 let calibrationStart = null;
 let isCalibrating = false;
 
+// Відстеження змін
+let hasUnsavedChanges = false;
+let lastSavedState = null;
+
 // забороняємо подвійний клік
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
@@ -32,12 +36,59 @@ document.addEventListener('wheel', e => {
   }
 }, { passive: false });
 
+// функція для показу повідомлень
+function showToast(message, type = 'success') {
+  const backgroundColor = {
+    success: 'linear-gradient(to right, #00b09b, #96c93d)',
+    error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+    warning: 'linear-gradient(to right, #f093fb, #f5576c)',
+    info: 'linear-gradient(to right, #4facfe, #00f2fe)'
+  };
+
+  Toastify({
+    text: message,
+    duration: 13000,
+    close: true,
+    gravity: "top",
+    position: "right",
+    backgroundColor: backgroundColor[type],
+    stopOnFocus: true
+  }).showToast();
+}
+
+// функція для відстеження змін
+function checkForChanges() {
+  if (currentProjectIndex === null) return;
+
+  const currentState = {
+    rulerPosition: rulerPosition,
+    step: step
+  };
+
+  hasUnsavedChanges = JSON.stringify(currentState) !== JSON.stringify(lastSavedState);
+}
+
+// функція з обробкою помилок для localStorage
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    if (error.name === 'QuotaExceededError') {
+      showToast('Недостатньо місця для збереження. Видаліть старі проєкти.', 'error');
+    } else {
+      showToast('Помилка збереження: ' + error.message, 'error');
+    }
+    return false;
+  }
+}
+
 document.getElementById("startCalibration").onclick = () => {
   calibrationStart = parseInt(ruler.style.left) || 0;
   isCalibrating = true;
   document.getElementById("startCalibration").style.display = "none";
   document.getElementById("endCalibration").style.display = "inline-block";
-  alert("Калібровка розпочата. Перемістіть лінійку в кінцеву позицію і натисніть 'Кінець калібровки'");
+  showToast("Калібровка розпочата. Перемістіть лінійку в кінцеву позицію", "info");
 };
 
 document.getElementById("endCalibration").onclick = () => {
@@ -48,7 +99,7 @@ document.getElementById("endCalibration").onclick = () => {
 
   const columns = prompt("Скільки стовпчиків між початковою і кінцевою позицією?");
   if (!columns || isNaN(columns) || parseInt(columns) <= 0) {
-    alert("Введіть коректну кількість стовпчиків");
+    showToast("Введіть коректну кількість стовпчиків", "error");
     return;
   }
 
@@ -65,17 +116,39 @@ document.getElementById("endCalibration").onclick = () => {
   document.getElementById("startCalibration").style.display = "inline-block";
   document.getElementById("endCalibration").style.display = "none";
 
-    updateRuler();
-  alert(`Калібровка завершена! Новий крок: ${newStep.toFixed(1)} px`);
+  updateRuler();
+  checkForChanges();
+  showToast(`Калібровка завершена! Новий крок: ${newStep.toFixed(1)} px`);
 };
 
 // ========== Завантаження картинки або PDF ==========
 fileInput.addEventListener("change", e => {
-  currentProjectIndex = null;
-  document.getElementById("updateProject").disabled = true;
-
   const file = e.target.files[0];
   if (!file) return;
+
+  if (hasUnsavedChanges && currentProjectIndex !== null) {
+    if (confirm("У поточному проєкті є несохранені зміни. Зберегти їх?")) {
+      try {
+      const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+      if (projects[currentProjectIndex]) {
+        projects[currentProjectIndex].rulerPosition = rulerPosition;
+        projects[currentProjectIndex].step = step;
+          if (safeSetItem("beadProjects", JSON.stringify(projects))) {
+            showToast("Зміни збережено");
+      }
+    }
+      } catch (error) {
+        showToast("Помилка збереження змін: " + error.message, "error");
+  }
+    }
+  }
+
+  currentProjectIndex = null;
+  hasUnsavedChanges = false;
+  lastSavedState = null;
+  document.getElementById("updateProject").disabled = true;
+  document.getElementById("deleteProject").disabled = true;
+  document.getElementById("projectList").value = "";
 
   if (file.type === "application/pdf") {
     const reader = new FileReader();
@@ -90,28 +163,32 @@ fileInput.addEventListener("change", e => {
           pdfCanvas.height = viewport.height;
 
           page.render({ canvasContext: ctx2, viewport }).promise.then(() => {
-  img.onload = () => {
-    fitToScreen(img);
-    drawImage();
+            img.onload = () => {
+              fitToScreen(img);
+              drawImage();
               rulerPosition = 0;
-    updateRuler();
-  };
+              step = 20; // скидаємо крок
+              stepInput.value = step;
+              updateRuler();
+            };
             img.src = pdfCanvas.toDataURL();
           });
         });
       });
-};
+    };
     reader.readAsArrayBuffer(file);
     return;
   }
 
-  // зображення
+  // код для зображень
   const reader = new FileReader();
   reader.onload = ev => {
     img.onload = () => {
       fitToScreen(img);
       drawImage();
       rulerPosition = 0;
+      step = 20; // скидаємо крок
+      stepInput.value = step;
       updateRuler();
     };
     img.src = ev.target.result;
@@ -176,6 +253,8 @@ function moveRulerTo(left) {
   const displayRow = Math.floor(rulerPosition / step) + 1;
   rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
+
+  checkForChanges(); // перевіряємо зміни
 }
 
 function updateBlurMask() {
@@ -188,7 +267,8 @@ function updateBlurMask() {
 
 stepInput.onchange = () => {
   step = parseFloat(stepInput.value);
-    updateRuler();
+  updateRuler();
+  checkForChanges();
 };
 
 // перетягування лінійки
@@ -239,12 +319,14 @@ document.addEventListener("touchmove", e => { if(dragging) moveRulerTo(e.touches
 // кнопки навігації
 document.getElementById("prevRow").onclick = () => {
   rulerPosition = Math.max(0, rulerPosition - step);
-    updateRuler();
-  };
+  updateRuler();
+  checkForChanges();
+};
 
 document.getElementById("nextRow").onclick = () => {
   rulerPosition = Math.min(imgWidth, rulerPosition + step);
-    updateRuler();
+  updateRuler();
+  checkForChanges();
 };
 
 function snapToGrid() {
@@ -268,56 +350,154 @@ function loadProjectList() {
 }
 
 document.getElementById("saveProject").onclick = () => {
+  if (!img.src) {
+    showToast("Спочатку завантажте картинку", "warning");
+    return;
+  }
+
   const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
   const name = prompt("Назва проєкту", `Проєкт ${projects.length+1}`);
   if (!name) return;
+
   const data = {
     name,
     imgSrc: img.src,
-    rulerPosition: rulerPosition, // зберігаємо позицію в пікселях
+      rulerPosition: rulerPosition,
     step
-};
+    };
   projects.push(data);
-  localStorage.setItem("beadProjects", JSON.stringify(projects));
-loadProjectList();
-  alert("Проєкт збережено ✅");
+
+  if (safeSetItem("beadProjects", JSON.stringify(projects))) {
+    currentProjectIndex = projects.length - 1;
+  loadProjectList();
+  document.getElementById("projectList").value = currentProjectIndex;
+    document.getElementById("updateProject").disabled = false;
+    document.getElementById("deleteProject").disabled = false;
+
+  lastSavedState = {
+    rulerPosition: rulerPosition,
+    step: step
+  };
+  hasUnsavedChanges = false;
+
+    showToast("Проєкт збережено ✅");
+  }
 };
 
-document.getElementById("loadProject").onclick = () => {
+// автозавантаження при виборі проєкту
+document.getElementById("projectList").onchange = () => {
   const select = document.getElementById("projectList");
   const idx = select.value;
-  if (idx==="") return alert("Оберіть проєкт для завантаження");
-  const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
-  const data = projects[idx];
-  if (!data) return alert("Проєкт не знайдено");
 
-  currentProjectIndex = parseInt(idx);
-  document.getElementById("updateProject").disabled = false;
+  if (idx === "") {
+    currentProjectIndex = null;
+    document.getElementById("updateProject").disabled = true;
+    document.getElementById("deleteProject").disabled = true;
+    return;
+  }
 
-  img.onload = () => {
-    fitToScreen(img);
-    drawImage();
-    step = data.step;
-    stepInput.value = step;
-    rulerPosition = data.rulerPosition || 0; // завантажуємо позицію в пікселях
-    updateRuler();
-  };
-  img.src = data.imgSrc;
+  try {
+    const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+    const data = projects[idx];
+    if (!data) {
+      showToast("Проєкт не знайдено", "error");
+      return;
+    }
+
+    currentProjectIndex = parseInt(idx);
+    document.getElementById("updateProject").disabled = false;
+    document.getElementById("deleteProject").disabled = false;
+
+    img.onload = () => {
+      fitToScreen(img);
+      drawImage();
+      step = data.step;
+      stepInput.value = step;
+      rulerPosition = data.rulerPosition || 0;
+      updateRuler();
+
+      lastSavedState = {
+        rulerPosition: rulerPosition,
+        step: step
+      };
+      hasUnsavedChanges = false;
+
+      showToast(`Проєкт "${data.name}" завантажено`);
+    };
+
+    img.onerror = () => {
+      showToast("Помилка завантаження картинки проєкту", "error");
+    };
+
+    img.src = data.imgSrc;
+  } catch (error) {
+    showToast("Помилка завантаження проєкту: " + error.message, "error");
+  }
 };
 
 document.getElementById("updateProject").onclick = () => {
-  if (currentProjectIndex === null) return;
+  if (currentProjectIndex === null) {
+    showToast("Немає завантаженого проєкту для оновлення", "warning");
+    return;
+  }
 
-  const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
-  if (!projects[currentProjectIndex]) return alert("Проєкт не знайдено");
+  try {
+    const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+    if (!projects[currentProjectIndex]) {
+      showToast("Проєкт не знайдено", "error");
+      return;
+    }
 
-  projects[currentProjectIndex].imgSrc = img.src;
-  projects[currentProjectIndex].rulerPosition = rulerPosition;
-  projects[currentProjectIndex].step = step;
+    projects[currentProjectIndex].rulerPosition = rulerPosition;
+    projects[currentProjectIndex].step = step;
 
-  localStorage.setItem("beadProjects", JSON.stringify(projects));
+    if (safeSetItem("beadProjects", JSON.stringify(projects))) {
 loadProjectList();
-  alert("Проєкт оновлено ✅");
+      document.getElementById("projectList").value = currentProjectIndex;
+
+      lastSavedState = {
+        rulerPosition: rulerPosition,
+        step: step
+      };
+      hasUnsavedChanges = false;
+
+      showToast("Проєкт оновлено ✅");
+    }
+  } catch (error) {
+    showToast("Помилка оновлення проєкту: " + error.message, "error");
+  }
+};
+
+// функція видалення проєкту
+document.getElementById("deleteProject").onclick = () => {
+  if (currentProjectIndex === null) {
+    showToast("Немає проєкту для видалення", "warning");
+    return;
+  }
+
+  try {
+    const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+    const projectName = projects[currentProjectIndex]?.name || "Проєкт";
+
+    if (confirm(`Видалити проєкт "${projectName}"?`)) {
+      projects.splice(currentProjectIndex, 1);
+
+      if (safeSetItem("beadProjects", JSON.stringify(projects))) {
+        currentProjectIndex = null;
+        hasUnsavedChanges = false;
+        lastSavedState = null;
+
+        loadProjectList();
+        document.getElementById("projectList").value = "";
+        document.getElementById("updateProject").disabled = true;
+        document.getElementById("deleteProject").disabled = true;
+
+        showToast(`Проєкт "${projectName}" видалено`);
+      }
+    }
+  } catch (error) {
+    showToast("Помилка видалення проєкту: " + error.message, "error");
+  }
 };
 
 // старт

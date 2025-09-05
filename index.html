@@ -1,52 +1,58 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Bead Pattern Ruler</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bead Pattern Ruler</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body>
-  <div id="controls">
+<div id="controls">
     <div class="controls-group">
-    <input type="file" id="fileInput" accept="image/*,.pdf">
-      <div class="step-control">
-        <label>Крок (px):</label>
-        <input type="number" id="stepInput" value="20" min="1" step="0.1">
-  </div>
-  </div>
-
-    <div class="controls-group navigation">
-      <button id="prevRow" class="nav-btn prev">◀</button>
-      <span id="rowInfo">Рядок ≈ 1</span>
-      <button id="nextRow" class="nav-btn next">▶</button>
+        <input type="file" id="fileInput" accept="image/*,.pdf">
+        <div class="step-control">
+            <label>Крок (px):</label>
+            <input type="number" id="stepInput" value="20" min="1" step="0.1">
+        </div>
     </div>
 
-    <div class="controls-group">
-      <button id="saveProject">💾 Зберегти новий</button>
-      <button id="updateProject" disabled>🔄 Оновити поточний</button>
-      <select id="projectList">
-        <option value="">-- Обрати проєкт --</option>
-      </select>
-      <button id="loadProject">📂 Завантажити</button>
+    <div class="controls-group navigation">
+        <button id="prevRow" class="nav-btn prev">◀</button>
+        <span id="rowInfo">Рядок ≈ 1</span>
+        <button id="nextRow" class="nav-btn next">▶</button>
+    </div>
+
+    <div class="controls-group project-buttons">
+        <div>
+            <button id="saveProject">💾 Зберегти новий</button>
+        </div>
+        <div>
+            <button id="updateProject" disabled>🔄 Оновити поточний</button>
+            <select id="projectList">
+                <option value="">-- Обрати проєкт --</option>
+            </select>
+            <button id="deleteProject" disabled>🗑️ Видалити</button>
+        </div>
     </div>
 
     <div class="controls-group calibration">
-      <button id="startCalibration">📏 Початок калібровки</button>
-      <button id="endCalibration" style="display: none;">📐 Кінець калібровки</button>
+        <button id="startCalibration">📏 Початок калібровки</button>
+        <button id="endCalibration" style="display: none;">📐 Кінець калібровки</button>
     </div>
-  </div>
+</div>
+'
 
-  <div id="canvasContainer">
+<div id="canvasContainer">
     <canvas id="patternCanvas"></canvas>
     <div id="blurOverlay"></div>
     <div id="highlight"></div>
     <div id="ruler"></div>
     <div id="rulerTouchArea"></div>
-  </div>
+</div>
 
-  <!-- PDF.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script src="script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
