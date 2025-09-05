@@ -138,7 +138,13 @@ fileInput.addEventListener("change", async e => {
       showDenyButton: true,
       confirmButtonText: 'Зберегти',
       denyButtonText: 'Не зберігати',
-      cancelButtonText: 'Скасувати'
+      cancelButtonText: 'Скасувати',
+      customClass: {
+        confirmButton: 'custom-confirm-btn',
+        denyButton: 'custom-deny-btn',
+        cancelButton: 'custom-cancel-btn'
+      },
+      buttonsStyling: false
     });
 
     if (result.isDismissed) return;
