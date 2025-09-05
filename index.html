@@ -11,14 +11,11 @@
 <div id="controls">
     <div class="controls-group">
         <input type="file" id="fileInput" accept="image/*,.pdf">
-        <div class="step-control">
-            <label>Крок (px):</label>
-            <input type="number" id="stepInput" value="20" min="1" step="0.1">
-        </div>
     </div>
 
     <div class="controls-group navigation">
         <button id="prevRow" class="nav-btn prev">◀</button>
+        <button id="setRowOffset" class="offset-btn" title="Зробити поточний курсор 1-м рядом">🎯</button>
         <span id="rowInfo">Рядок ≈ 1</span>
         <button id="nextRow" class="nav-btn next">▶</button>
     </div>
@@ -37,12 +34,16 @@
     </div>
 
     <div class="controls-group calibration">
-        <button id="startCalibration">📏 Початок калібровки</button>
-        <button id="endCalibration" style="display: none;">📐 Кінець калібровки</button>
+        <div>
+            <button id="startCalibration">📏 Початок калібровки</button>
+            <button id="endCalibration" style="display: none;">📐 Кінець калібровки</button>
+        </div>
+        <div class="step-control">
+            <label>Крок (px):</label>
+            <input type="number" id="stepInput" value="20" min="1" step="0.1">
+        </div>
     </div>
 </div>
-'
-
 <div id="canvasContainer">
     <canvas id="patternCanvas"></canvas>
     <div id="blurOverlay"></div>

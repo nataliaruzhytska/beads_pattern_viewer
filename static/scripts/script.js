@@ -12,6 +12,7 @@ let rulerPosition = 0;
 let step = parseInt(stepInput.value);
 let imgOffsetX = 0, imgOffsetY = 0;
 let currentProjectIndex = null;
+let rowOffset = 0;
 
 let calibrationStart = null;
 let isCalibrating = false;
@@ -41,7 +42,7 @@ function showToast(message, type = 'success') {
 
   Toastify({
     text: message,
-    duration: 13000,
+    duration: 2000,
     close: true,
     gravity: "top",
     position: "right",
@@ -50,12 +51,17 @@ function showToast(message, type = 'success') {
   }).showToast();
 }
 
+function getDisplayRow() {
+  return Math.floor(rulerPosition / step) + 1 - rowOffset;
+}
+
 function checkForChanges() {
   if (currentProjectIndex === null) return;
 
   const currentState = {
     rulerPosition: rulerPosition,
-    step: step
+    step: step,
+    rowOffset: rowOffset
   };
 
   hasUnsavedChanges = JSON.stringify(currentState) !== JSON.stringify(lastSavedState);
@@ -100,6 +106,12 @@ document.getElementById("endCalibration").onclick = async () => {
     showCancelButton: true,
     confirmButtonText: 'Підтвердити',
     cancelButtonText: 'Скасувати',
+    customClass: {
+      confirmButton: 'custom-confirm-btn',
+      denyButton: 'custom-deny-btn',
+      cancelButton: 'custom-cancel-btn'
+    },
+    buttonsStyling: false,
     inputValidator: (value) => {
       if (!value || isNaN(value) || parseInt(value) <= 0) {
         return 'Введіть коректну кількість стовпчиків!'
@@ -123,6 +135,14 @@ document.getElementById("endCalibration").onclick = async () => {
   updateRuler();
   checkForChanges();
   showToast(`Калібровка завершена! Новий крок: ${newStep.toFixed(1)} px`);
+};
+
+document.getElementById("setRowOffset").onclick = () => {
+  const currentCalculatedRow = Math.floor(rulerPosition / step) + 1;
+  rowOffset = currentCalculatedRow - 1;
+              updateRuler();
+  checkForChanges();
+  showToast(`Поточна позиція встановлена як рядок 1`, "info");
 };
 
 fileInput.addEventListener("change", async e => {
@@ -155,11 +175,12 @@ fileInput.addEventListener("change", async e => {
       if (projects[currentProjectIndex]) {
         projects[currentProjectIndex].rulerPosition = rulerPosition;
         projects[currentProjectIndex].step = step;
-          if (safeSetItem("beadProjects", JSON.stringify(projects))) {
+        projects[currentProjectIndex].rowOffset = rowOffset;
+      if (safeSetItem("beadProjects", JSON.stringify(projects))) {
             showToast("Зміни збережено");
       }
     }
-      } catch (error) {
+  } catch (error) {
         showToast("Помилка збереження змін: " + error.message, "error");
   }
     }
@@ -168,6 +189,7 @@ fileInput.addEventListener("change", async e => {
   currentProjectIndex = null;
   hasUnsavedChanges = false;
   lastSavedState = null;
+  rowOffset = 0;
   document.getElementById("updateProject").disabled = true;
   document.getElementById("deleteProject").disabled = true;
   document.getElementById("projectList").value = "";
@@ -192,7 +214,7 @@ fileInput.addEventListener("change", async e => {
               step = 20;
               stepInput.value = step;
               updateRuler();
-            };
+};
             img.src = pdfCanvas.toDataURL();
           });
         });
@@ -248,7 +270,7 @@ function updateRuler() {
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  const displayRow = Math.floor(rulerPosition / step) + 1;
+  const displayRow = getDisplayRow();
   rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
 }
@@ -264,7 +286,7 @@ function moveRulerTo(left) {
   highlight.style.left = left + "px";
   highlight.style.width = step + "px";
 
-  const displayRow = Math.floor(rulerPosition / step) + 1;
+  const displayRow = getDisplayRow();
   rowInfo.textContent = `Рядок ≈ ${displayRow} (${rulerPosition.toFixed(1)}px)`;
   updateBlurMask();
 
@@ -346,7 +368,6 @@ function snapToGrid() {
   rulerPosition = Math.max(0, snappedPosition);
   moveRulerTo(imgOffsetX + rulerPosition);
 }
-
 function loadProjectList() {
     const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
   const select = document.getElementById("projectList");
@@ -365,7 +386,7 @@ document.getElementById("saveProject").onclick = async () => {
     return;
   }
 
-    const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
+  const projects = JSON.parse(localStorage.getItem("beadProjects")) || [];
 
   const { value: name } = await Swal.fire({
     title: 'Зберегти проєкт',
@@ -375,6 +396,12 @@ document.getElementById("saveProject").onclick = async () => {
     showCancelButton: true,
     confirmButtonText: 'Зберегти',
     cancelButtonText: 'Скасувати',
+    customClass: {
+      confirmButton: 'custom-confirm-btn',
+      denyButton: 'custom-deny-btn',
+      cancelButton: 'custom-cancel-btn'
+    },
+    buttonsStyling: false,
     inputValidator: (value) => {
       if (!value || value.trim() === '') {
         return 'Введіть назву проєкту!'
@@ -388,7 +415,8 @@ document.getElementById("saveProject").onclick = async () => {
     name: name.trim(),
     imgSrc: img.src,
     rulerPosition: rulerPosition,
-    step
+    step,
+    rowOffset
 };
   projects.push(data);
 
@@ -401,7 +429,8 @@ loadProjectList();
 
     lastSavedState = {
       rulerPosition: rulerPosition,
-      step: step
+      step: step,
+      rowOffset: rowOffset
     };
     hasUnsavedChanges = false;
 
@@ -438,11 +467,13 @@ document.getElementById("projectList").onchange = () => {
       step = data.step;
       stepInput.value = step;
       rulerPosition = data.rulerPosition || 0;
+      rowOffset = data.rowOffset || 0;
       updateRuler();
 
       lastSavedState = {
         rulerPosition: rulerPosition,
-        step: step
+        step: step,
+        rowOffset: rowOffset
       };
       hasUnsavedChanges = false;
 
@@ -474,6 +505,7 @@ document.getElementById("updateProject").onclick = () => {
 
     projects[currentProjectIndex].rulerPosition = rulerPosition;
     projects[currentProjectIndex].step = step;
+    projects[currentProjectIndex].rowOffset = rowOffset;
 
     if (safeSetItem("beadProjects", JSON.stringify(projects))) {
 loadProjectList();
@@ -481,7 +513,8 @@ loadProjectList();
 
       lastSavedState = {
         rulerPosition: rulerPosition,
-        step: step
+        step: step,
+        rowOffset: rowOffset
       };
       hasUnsavedChanges = false;
 
@@ -509,6 +542,12 @@ document.getElementById("deleteProject").onclick = async () => {
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
+      customClass: {
+        confirmButton: 'custom-confirm-btn',
+        denyButton: 'custom-deny-btn',
+        cancelButton: 'custom-cancel-btn'
+      },
+      buttonsStyling: false,
       confirmButtonText: 'Так, видалити!',
       cancelButtonText: 'Скасувати'
     });
